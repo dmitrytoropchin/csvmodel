@@ -1,0 +1,5 @@
+Makefile
+.build/*
+*.pro.user
+*.pro.user.*
+csvmodel
