@@ -35,5 +35,7 @@ int main(int argc, char *argv[])
 
     csv_view->show();
 
+    csv_model->setStripQuotes(true);
+
     return app.exec();
 }

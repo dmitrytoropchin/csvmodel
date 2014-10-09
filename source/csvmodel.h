@@ -18,6 +18,9 @@ public:
     QChar separator() const;
     bool hasHeader() const;
 
+    bool stripQuotes() const;
+    void setStripQuotes(bool on);
+
     void parse(QTextStream *source_stream, const QChar &separator, bool has_header);
     void clear();
 

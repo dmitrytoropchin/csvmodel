@@ -57,6 +57,7 @@ class CSVModelPrivate {
 public:
     QChar separator;
     bool has_header;
+    bool strip_quotes;
     QVector<QVariant> header_data;
     VariantTable model_data;
 public:
@@ -118,6 +119,23 @@ public:
 
         return res;
     }
+
+    QString stripQuotes(const QString &source_str) const
+    {
+        QChar single_quote = QChar('\'');
+        QChar double_quote = QChar('\"');
+
+        QString stripped_str = source_str;
+
+        if ((stripped_str.startsWith(single_quote) && stripped_str.endsWith(single_quote)) ||
+            (stripped_str.startsWith(double_quote) && stripped_str.endsWith(double_quote)))
+        {
+            stripped_str.remove(0, 1);
+            stripped_str.chop(1);
+        }
+
+        return stripped_str;
+    }
 };
 
 
@@ -128,6 +146,7 @@ CSVModel::CSVModel(QObject *parent) :
     Q_D(CSVModel);
     d->separator = QChar();
     d->has_header = false;
+    d->strip_quotes = true;
 }
 
 CSVModel::~CSVModel()
@@ -145,6 +164,23 @@ bool CSVModel::hasHeader() const
 {
     Q_D(const CSVModel);
     return d->has_header;
+}
+
+bool CSVModel::stripQuotes() const
+{
+    Q_D(const CSVModel);
+    return d->strip_quotes;
+}
+
+void CSVModel::setStripQuotes(bool on)
+{
+    Q_D(CSVModel);
+    if (d->strip_quotes != on) {
+        d->strip_quotes = on;
+        emit dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1));
+        if (d->has_header)
+            emit headerDataChanged(Qt::Horizontal, 0, columnCount() - 1);
+    }
 }
 
 void CSVModel::parse(QTextStream *source_stream, const QChar &separator, bool has_header)
@@ -246,8 +282,10 @@ QVariant CSVModel::data(const QModelIndex &index, int role) const
     if (index.column() >= d->model_data.columnCount())
         return QVariant();
 
-    if (role == Qt::DisplayRole)
-        return d->model_data.itemAt(index.row(), index.column());
+    if (role == Qt::DisplayRole) {
+        return d->strip_quotes ? QVariant(d->stripQuotes(d->model_data.itemAt(index.row(), index.column()).toString()))
+                               : d->model_data.itemAt(index.row(), index.column());
+    }
 
     return QVariant();
 }
@@ -264,8 +302,10 @@ QVariant CSVModel::headerData(int section, Qt::Orientation orientation, int role
             return QString::number(section + 1);
 
         if (orientation == Qt::Horizontal) {
-            if (d->has_header && (section < d->header_data.size()))
-                return d->header_data.at(section);
+            if (d->has_header && (section < d->header_data.size())) {
+                return d->strip_quotes ? QVariant(d->stripQuotes(d->header_data.at(section).toString()))
+                                       : d->header_data.at(section);
+            }
         }
     }
 
